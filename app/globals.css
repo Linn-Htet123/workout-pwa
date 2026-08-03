@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: #000000;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro", "SF Pro Text",
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Stop the whole page from bouncing/rubber-banding on iOS. */
+  overscroll-behavior-y: none;
+}
+
+/* Safe-area padding so nothing hides behind the notch or the home bar. */
+.safe-top {
+  padding-top: max(env(safe-area-inset-top), 12px);
+}
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
+}
+.safe-x {
+  padding-left: max(env(safe-area-inset-left), 20px);
+  padding-right: max(env(safe-area-inset-right), 20px);
+}
+
+/* Tap targets should not flash a colored highlight on iOS. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Respect the "reduce motion" accessibility setting. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
