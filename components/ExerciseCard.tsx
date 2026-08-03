@@ -9,6 +9,11 @@ interface Props {
   index: number;
   doneSets: number[];
   onToggleSet: (setIndex: number) => void;
+  // Per-exercise stopwatch (managed by the parent so only one runs at a time).
+  timerRunning: boolean;
+  timerLabel: string;
+  onStartTimer: () => void;
+  onStopTimer: () => void;
 }
 
 // Pull the YouTube video id out of a youtu.be / watch link.
@@ -29,6 +34,10 @@ export default function ExerciseCard({
   index,
   doneSets,
   onToggleSet,
+  timerRunning,
+  timerLabel,
+  onStartTimer,
+  onStopTimer,
 }: Props) {
   // Show the thumbnail first; only load the real player after a tap
   // (faster, and lets the video autoplay from a user gesture).
@@ -47,17 +56,39 @@ export default function ExerciseCard({
         allDone ? "border-white/60 bg-white/[0.05]" : "border-gray2 bg-gray3"
       }`}
     >
-      {/* Title + progress count */}
+      {/* Title + set stopwatch */}
       <div className="flex items-start justify-between gap-3">
         <h3 className="min-w-0 text-[17px] font-semibold leading-tight">
           <span className="text-gray1">{index + 1}.</span> {exercise.name}
         </h3>
-        <span className="shrink-0 pt-0.5 text-[13px] font-medium tabular-nums text-gray1">
+        <button
+          type="button"
+          onClick={timerRunning ? onStopTimer : onStartTimer}
+          aria-label={timerRunning ? "Stop set timer" : "Start set timer"}
+          className={`flex h-9 shrink-0 touch-manipulation items-center gap-1.5 rounded-full border px-3 text-[14px] font-semibold tabular-nums transition-all duration-150 active:scale-95 ${
+            timerRunning
+              ? "border-white bg-white text-black"
+              : "border-gray2 bg-black text-white active:bg-white/10"
+          }`}
+        >
+          {timerRunning ? (
+            <>
+              <StopSquare /> {timerLabel}
+            </>
+          ) : (
+            <>
+              <StopwatchIcon /> Start
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="mt-1 flex items-center justify-between gap-3">
+        <p className="text-[15px] text-gray1">10–12 reps · {RIR_NOTE}</p>
+        <span className="shrink-0 text-[13px] font-medium tabular-nums text-gray1">
           {doneCount}/{exercise.sets}
         </span>
       </div>
-
-      <p className="mt-1 text-[15px] text-gray1">10–12 reps · {RIR_NOTE}</p>
 
       {/* Video: thumbnail → tap → plays inline right here. */}
       <div className="mt-3">
@@ -153,6 +184,23 @@ function CheckIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function StopwatchIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 13V9M9 2h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function StopSquare() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <rect x="6" y="6" width="12" height="12" rx="1.5" />
     </svg>
   );
 }

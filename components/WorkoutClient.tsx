@@ -12,8 +12,15 @@ import {
 } from "@/lib/storage";
 import ExerciseCard from "./ExerciseCard";
 import RestTimer from "./RestTimer";
+import { unlockAudio, playAlarm } from "@/lib/sound";
 
 const DEFAULT_REST = 90;
+
+function fmt(ms: number): string {
+  const s = Math.floor(Math.max(0, ms) / 1000);
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, "0")}`;
+}
 
 export default function WorkoutClient() {
   const [mounted, setMounted] = useState(false);
@@ -28,6 +35,20 @@ export default function WorkoutClient() {
   const [restActive, setRestActive] = useState(false);
   const [startToken, setStartToken] = useState(0);
   const [restDuration, setRestDuration] = useState<number>(DEFAULT_REST);
+
+  // Per-set stopwatch. Only one runs at a time; it counts UP from startAt.
+  const [setTimer, setSetTimer] = useState<{ index: number; startAt: number } | null>(
+    null
+  );
+  const [nowTick, setNowTick] = useState(0);
+
+  // Tick every 250ms while a set stopwatch is running.
+  useEffect(() => {
+    if (!setTimer) return;
+    setNowTick(Date.now());
+    const id = setInterval(() => setNowTick(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [setTimer]);
 
   const todayKey = dateKey(today);
   const weekday = weekdayMonFirst(today);
@@ -47,6 +68,8 @@ export default function WorkoutClient() {
   const allDone = totalSets > 0 && doneCount >= totalSets;
 
   function handleToggle(exerciseIndex: number, setIndex: number) {
+    unlockAudio(); // this tap lets iOS play sounds later
+    const wasComplete = progress.completed;
     const updated = toggleSetStore(todayKey, exerciseIndex, setIndex);
     const nowChecked = updated.setsDone[exerciseIndex]?.includes(setIndex);
 
@@ -59,6 +82,9 @@ export default function WorkoutClient() {
     const finalProgress = setDayCompleted(todayKey, complete);
     setProgress(finalProgress);
 
+    // Play the celebration sound the moment the day becomes complete.
+    if (complete && !wasComplete) playAlarm("done");
+
     // Start a rest timer only when a set was just turned ON (not undone).
     if (nowChecked) {
       setRestActive(true);
@@ -68,10 +94,23 @@ export default function WorkoutClient() {
 
   function pickDuration(seconds: number) {
     // Changing the length restarts the rest with the new time.
+    unlockAudio();
     setRestDuration(seconds);
     setRestActive(true);
     setStartToken((t) => t + 1);
   }
+
+  function startSetTimer(index: number) {
+    unlockAudio();
+    setSetTimer({ index, startAt: Date.now() });
+  }
+
+  function stopSetTimer() {
+    if (setTimer) playAlarm("set");
+    setSetTimer(null);
+  }
+
+  const setTimerElapsed = setTimer ? nowTick - setTimer.startAt : 0;
 
   if (!mounted) {
     return <div className="min-h-screen bg-black" />;
@@ -99,6 +138,40 @@ export default function WorkoutClient() {
 
   return (
     <main className="min-h-screen bg-black text-white">
+      {/* Sticky clock — stays pinned at the top while a set timer runs. */}
+      {setTimer && (
+        <div className="fixed inset-x-0 top-0 z-40">
+          <div className="safe-top safe-x bg-black/80 backdrop-blur">
+            <div className="mx-auto flex max-w-md items-center gap-3 py-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="2" />
+                  <path d="M12 13V9M9 2h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12px] text-gray1">
+                  {workout.exercises[setTimer.index]?.name}
+                </p>
+                <p className="text-[20px] font-bold leading-none tabular-nums">
+                  {fmt(setTimerElapsed)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={stopSetTimer}
+                className="flex h-9 touch-manipulation items-center gap-1.5 rounded-full bg-white px-4 text-[14px] font-semibold text-black active:scale-95"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <rect x="6" y="6" width="12" height="12" rx="1.5" />
+                </svg>
+                Stop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Extra bottom padding leaves room for the floating rest timer. */}
       <div className="safe-top safe-x mx-auto max-w-md pb-48">
         <header className="flex items-center justify-between pt-4">
@@ -166,6 +239,10 @@ export default function WorkoutClient() {
               index={i}
               doneSets={progress.setsDone[i] ?? []}
               onToggleSet={(setIndex) => handleToggle(i, setIndex)}
+              timerRunning={setTimer?.index === i}
+              timerLabel={setTimer?.index === i ? fmt(setTimerElapsed) : ""}
+              onStartTimer={() => startSetTimer(i)}
+              onStopTimer={stopSetTimer}
             />
           ))}
         </div>

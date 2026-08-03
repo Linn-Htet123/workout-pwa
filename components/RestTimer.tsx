@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { playAlarm } from "@/lib/sound";
 
 interface Props {
   // Changes each time we should (re)start the timer fresh.
@@ -53,9 +54,11 @@ export default function RestTimer({
 
   const finished = running && remainingMs <= 0;
 
-  // Buzz once when we hit zero (no-op on devices without vibration, e.g. iPhone).
+  // Alarm once when we hit zero: a sound (works on iPhone) plus a buzz on
+  // devices that support vibration (Android).
   if (finished && !vibratedRef.current) {
     vibratedRef.current = true;
+    playAlarm("rest");
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       try {
         navigator.vibrate([200, 100, 200]);
