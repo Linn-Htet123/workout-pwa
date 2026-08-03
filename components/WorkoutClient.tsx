@@ -15,6 +15,7 @@ import RestTimer from "./RestTimer";
 import { unlockAudio, playAlarm } from "@/lib/sound";
 
 const DEFAULT_REST = 90;
+const SET_SECONDS = 45; // per-set countdown length
 
 function fmt(ms: number): string {
   const s = Math.floor(Math.max(0, ms) / 1000);
@@ -36,17 +37,25 @@ export default function WorkoutClient() {
   const [startToken, setStartToken] = useState(0);
   const [restDuration, setRestDuration] = useState<number>(DEFAULT_REST);
 
-  // Per-set stopwatch. Only one runs at a time; it counts UP from startAt.
-  const [setTimer, setSetTimer] = useState<{ index: number; startAt: number } | null>(
+  // Per-set countdown (45 → 0). Only one runs at a time. `endAt` is a real
+  // timestamp so it stays correct even if the screen locks.
+  const [setTimer, setSetTimer] = useState<{ index: number; endAt: number } | null>(
     null
   );
   const [nowTick, setNowTick] = useState(0);
 
-  // Tick every 250ms while a set stopwatch is running.
+  // Tick every 250ms while a set countdown is running; alarm + stop at 0.
   useEffect(() => {
     if (!setTimer) return;
     setNowTick(Date.now());
-    const id = setInterval(() => setNowTick(Date.now()), 250);
+    const id = setInterval(() => {
+      const t = Date.now();
+      setNowTick(t);
+      if (t >= setTimer.endAt) {
+        playAlarm("set");
+        setSetTimer(null);
+      }
+    }, 250);
     return () => clearInterval(id);
   }, [setTimer]);
 
@@ -102,15 +111,15 @@ export default function WorkoutClient() {
 
   function startSetTimer(index: number) {
     unlockAudio();
-    setSetTimer({ index, startAt: Date.now() });
+    setSetTimer({ index, endAt: Date.now() + SET_SECONDS * 1000 });
   }
 
+  // Manual stop = cancel the countdown quietly (the alarm only fires at 0).
   function stopSetTimer() {
-    if (setTimer) playAlarm("set");
     setSetTimer(null);
   }
 
-  const setTimerElapsed = setTimer ? nowTick - setTimer.startAt : 0;
+  const setTimerRemaining = setTimer ? Math.max(0, setTimer.endAt - nowTick) : 0;
 
   if (!mounted) {
     return <div className="min-h-screen bg-black" />;
@@ -154,7 +163,7 @@ export default function WorkoutClient() {
                   {workout.exercises[setTimer.index]?.name}
                 </p>
                 <p className="text-[20px] font-bold leading-none tabular-nums">
-                  {fmt(setTimerElapsed)}
+                  {fmt(setTimerRemaining)}
                 </p>
               </div>
               <button
@@ -240,7 +249,7 @@ export default function WorkoutClient() {
               doneSets={progress.setsDone[i] ?? []}
               onToggleSet={(setIndex) => handleToggle(i, setIndex)}
               timerRunning={setTimer?.index === i}
-              timerLabel={setTimer?.index === i ? fmt(setTimerElapsed) : ""}
+              timerLabel={setTimer?.index === i ? fmt(setTimerRemaining) : ""}
               onStartTimer={() => startSetTimer(i)}
               onStopTimer={stopSetTimer}
             />

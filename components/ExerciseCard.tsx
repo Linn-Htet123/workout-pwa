@@ -39,9 +39,8 @@ export default function ExerciseCard({
   onStartTimer,
   onStopTimer,
 }: Props) {
-  // Show the thumbnail first; only load the real player after a tap
-  // (faster, and lets the video autoplay from a user gesture).
-  const [playing, setPlaying] = useState(false);
+  // Video is an accordion: closed by default, opens (and plays) only on tap.
+  const [open, setOpen] = useState(false);
   const doneCount = doneSets.length;
   const allDone = doneCount >= exercise.sets;
   const id = videoId(exercise.video);
@@ -90,25 +89,15 @@ export default function ExerciseCard({
         </span>
       </div>
 
-      {/* Video: thumbnail → tap → plays inline right here. */}
+      {/* Video accordion — a compact row that opens and plays only when tapped. */}
       <div className="mt-3">
-        {playing ? (
-          <div className="aspect-video w-full overflow-hidden rounded-2xl border border-gray2 bg-black">
-            <iframe
-              src={embedUrl}
-              title={`${exercise.name} video`}
-              className="h-full w-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setPlaying(true)}
-            aria-label={`Play ${exercise.name} video`}
-            className="relative flex aspect-video w-full touch-manipulation items-center justify-center overflow-hidden rounded-2xl border border-gray2 bg-gray2 transition-transform duration-150 active:scale-[0.99]"
-          >
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="flex w-full touch-manipulation items-center gap-3 rounded-2xl border border-gray2 bg-black p-2 transition-transform duration-150 active:scale-[0.99] active:bg-white/10"
+        >
+          <span className="relative flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray2">
             {thumb && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -121,26 +110,43 @@ export default function ExerciseCard({
                 }}
               />
             )}
-            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-black/55">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+            <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-black/55">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </span>
-            <span className="absolute bottom-2 left-3 text-[13px] font-semibold text-white drop-shadow">
-              Watch video
-            </span>
-          </button>
-        )}
+          </span>
+          <span className="flex-1 text-left text-[15px] font-semibold text-white">
+            {open ? "Hide video" : "Watch video"}
+          </span>
+          <span className={`mr-1 text-gray1 transition-transform duration-200 ${open ? "rotate-180" : ""}`}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </button>
 
-        {/* Fallback: if the video won't play inline, open it in YouTube. */}
-        <a
-          href={exercise.video}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-block text-[13px] text-gray1 underline underline-offset-2 active:opacity-60"
-        >
-          {playing ? "Not playing? Open in YouTube" : "Open in YouTube instead"}
-        </a>
+        {open && (
+          <div className="mt-2">
+            <div className="aspect-video w-full overflow-hidden rounded-2xl border border-gray2 bg-black">
+              <iframe
+                src={embedUrl}
+                title={`${exercise.name} video`}
+                className="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+            <a
+              href={exercise.video}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-[13px] text-gray1 underline underline-offset-2 active:opacity-60"
+            >
+              Not playing? Open in YouTube
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Set targets — three big circles. Tap to complete, tap again to undo. */}
