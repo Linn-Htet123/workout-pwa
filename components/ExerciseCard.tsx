@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Exercise } from "@/data/program";
 import { RIR_NOTE } from "@/data/program";
 
@@ -29,10 +30,16 @@ export default function ExerciseCard({
   doneSets,
   onToggleSet,
 }: Props) {
+  // Show the thumbnail first; only load the real player after a tap
+  // (faster, and lets the video autoplay from a user gesture).
+  const [playing, setPlaying] = useState(false);
   const doneCount = doneSets.length;
   const allDone = doneCount >= exercise.sets;
   const id = videoId(exercise.video);
   const thumb = id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : "";
+  const embedUrl = id
+    ? `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0&modestbranding=1`
+    : exercise.video;
 
   return (
     <div
@@ -52,35 +59,58 @@ export default function ExerciseCard({
 
       <p className="mt-1 text-[15px] text-gray1">10–12 reps · {RIR_NOTE}</p>
 
-      {/* Watch video — a thumbnail you tap to open the video in YouTube. */}
-      <a
-        href={exercise.video}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-3 flex touch-manipulation items-center gap-3 rounded-2xl border border-gray2 bg-black p-2 transition-transform duration-150 active:scale-[0.99] active:bg-white/10"
-      >
-        <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-lg bg-gray2">
-          {thumb && (
-            <img
-              src={thumb}
-              alt=""
-              className="h-full w-full object-cover"
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
+      {/* Video: thumbnail → tap → plays inline right here. */}
+      <div className="mt-3">
+        {playing ? (
+          <div className="aspect-video w-full overflow-hidden rounded-2xl border border-gray2 bg-black">
+            <iframe
+              src={embedUrl}
+              title={`${exercise.name} video`}
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
             />
-          )}
-          <span className="absolute inset-0 flex items-center justify-center">
-            <PlayBadge />
-          </span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold text-white">Watch video</p>
-          <p className="text-[12px] text-gray1">Opens in YouTube</p>
-        </div>
-        <ChevronRight />
-      </a>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPlaying(true)}
+            aria-label={`Play ${exercise.name} video`}
+            className="relative flex aspect-video w-full touch-manipulation items-center justify-center overflow-hidden rounded-2xl border border-gray2 bg-gray2 transition-transform duration-150 active:scale-[0.99]"
+          >
+            {thumb && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={thumb}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            )}
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-black/55">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+            <span className="absolute bottom-2 left-3 text-[13px] font-semibold text-white drop-shadow">
+              Watch video
+            </span>
+          </button>
+        )}
+
+        {/* Fallback: if the video won't play inline, open it in YouTube. */}
+        <a
+          href={exercise.video}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-block text-[13px] text-gray1 underline underline-offset-2 active:opacity-60"
+        >
+          {playing ? "Not playing? Open in YouTube" : "Open in YouTube instead"}
+        </a>
+      </div>
 
       {/* Set targets — three big circles. Tap to complete, tap again to undo. */}
       <div className="mt-4">
@@ -120,38 +150,6 @@ function CheckIcon() {
         d="M5 12.5l4.2 4.2L19 7"
         stroke="currentColor"
         strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-// White play triangle in a circle, sits on top of the thumbnail.
-function PlayBadge() {
-  return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/55">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
-        <path d="M8 5v14l11-7z" />
-      </svg>
-    </span>
-  );
-}
-
-function ChevronRight() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      className="mr-1 shrink-0 text-gray1"
-      aria-hidden="true"
-    >
-      <path
-        d="M9 6l6 6-6 6"
-        stroke="currentColor"
-        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
