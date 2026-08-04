@@ -22,7 +22,8 @@ const LangContext = createContext<LangContextValue>({
 });
 
 export function LangProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
+  // Default is Burmese; a saved choice (below) overrides it.
+  const [lang, setLangState] = useState<Lang>("my");
 
   // Read the saved choice after mount (localStorage is client-only).
   useEffect(() => {
@@ -30,7 +31,7 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
       const saved = window.localStorage.getItem(LANG_STORAGE_KEY);
       if (saved === "en" || saved === "my") setLangState(saved);
     } catch {
-      /* private mode etc. — stay on English */
+      /* private mode etc. — stay on the default */
     }
   }, []);
 
