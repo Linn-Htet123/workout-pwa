@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { Exercise } from "@/data/program";
 import { RIR_NOTE } from "@/data/program";
+import { getExerciseInfo } from "@/data/exerciseInfo";
+import { useLang } from "./LangProvider";
 
 interface Props {
   exercise: Exercise;
@@ -39,8 +41,12 @@ export default function ExerciseCard({
   onStartTimer,
   onStopTimer,
 }: Props) {
+  const { t, lang } = useLang();
   // Video is an accordion: closed by default, opens (and plays) only on tap.
   const [open, setOpen] = useState(false);
+  const info = getExerciseInfo(exercise.name);
+  const works = info ? (lang === "my" ? info.worksMy : info.works) : "";
+  const howTo = info ? (lang === "my" ? info.howToMy : info.howTo) : "";
   const doneCount = doneSets.length;
   const allDone = doneCount >= exercise.sets;
   const id = videoId(exercise.video);
@@ -76,18 +82,30 @@ export default function ExerciseCard({
             </>
           ) : (
             <>
-              <StopwatchIcon /> Start
+              <StopwatchIcon /> {t.start}
             </>
           )}
         </button>
       </div>
 
       <div className="mt-1 flex items-center justify-between gap-3">
-        <p className="text-[15px] text-gray1">10–12 reps · {RIR_NOTE}</p>
+        <p className="text-[15px] text-gray1">
+          {t.repsLine} · {RIR_NOTE}
+        </p>
         <span className="shrink-0 text-[13px] font-medium tabular-nums text-gray1">
           {doneCount}/{exercise.sets}
         </span>
       </div>
+
+      {/* What it works + how to do it (short, simple, white text). */}
+      {info && (
+        <div className="mt-2">
+          <p className="text-[13px] text-gray1">
+            {t.works}: {works}
+          </p>
+          <p className="mt-1 text-[14px] leading-relaxed text-white">{howTo}</p>
+        </div>
+      )}
 
       {/* Video accordion — a compact row that opens and plays only when tapped. */}
       <div className="mt-3">
@@ -117,7 +135,7 @@ export default function ExerciseCard({
             </span>
           </span>
           <span className="flex-1 text-left text-[15px] font-semibold text-white">
-            {open ? "Hide video" : "Watch video"}
+            {open ? t.hideVideo : t.watchVideo}
           </span>
           <span className={`mr-1 text-gray1 transition-transform duration-200 ${open ? "rotate-180" : ""}`}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -143,7 +161,7 @@ export default function ExerciseCard({
               rel="noopener noreferrer"
               className="mt-2 inline-block text-[13px] text-gray1 underline underline-offset-2 active:opacity-60"
             >
-              Not playing? Open in YouTube
+              {t.notPlaying}
             </a>
           </div>
         )}
@@ -152,7 +170,7 @@ export default function ExerciseCard({
       {/* Set targets — three big circles. Tap to complete, tap again to undo. */}
       <div className="mt-4">
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-gray1">
-          Tap each set when done
+          {t.tapEachSet}
         </p>
         <div className="flex gap-3">
           {Array.from({ length: exercise.sets }, (_, setIndex) => {
@@ -170,7 +188,7 @@ export default function ExerciseCard({
                     : "border-gray2 bg-black text-white active:bg-white/10"
                 }`}
               >
-                {done ? <CheckIcon /> : `Set ${setIndex + 1}`}
+                {done ? <CheckIcon /> : `${t.set} ${setIndex + 1}`}
               </button>
             );
           })}

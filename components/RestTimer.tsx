@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { playAlarm } from "@/lib/sound";
+import { useLang } from "./LangProvider";
 
 interface Props {
   // Changes each time we should (re)start the timer fresh.
@@ -20,6 +21,7 @@ export default function RestTimer({
   onPickDuration,
   onStop,
 }: Props) {
+  const { t } = useLang();
   // While running we track an END timestamp, so the countdown stays correct
   // even if the phone screen locks (locked screens pause JS timers).
   const [endTime, setEndTime] = useState<number | null>(null);
@@ -95,16 +97,12 @@ export default function RestTimer({
     duration > 0 ? Math.min(1, remainingMs / (duration * 1000)) : 0;
   const dashoffset = finished ? 0 : C * (1 - fraction);
 
-  const statusText = finished
-    ? "Rest done"
-    : running
-      ? "Rest"
-      : "Paused";
+  const statusText = finished ? t.restDone : running ? t.rest : t.paused;
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 safe-bottom">
       <div className="safe-x pb-2">
-        <div className="mx-auto max-w-md rounded-card border border-gray2 bg-gray3/95 p-4 backdrop-blur">
+        <div className="mx-auto max-w-md rounded-card border border-gray2 bg-gray3/95 p-4 backdrop-blur md:max-w-3xl">
           {/* Top: ring + status + duration pills */}
           <div className="flex items-center gap-4">
             <div className="relative h-[72px] w-[72px] shrink-0">
@@ -125,7 +123,7 @@ export default function RestTimer({
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 {finished ? (
-                  <span className="text-base font-bold tracking-wide">GO</span>
+                  <span className="text-base font-bold tracking-wide">{t.go}</span>
                 ) : (
                   <span className="text-lg font-semibold tabular-nums">{label}</span>
                 )}
@@ -164,7 +162,7 @@ export default function RestTimer({
                 onClick={pause}
                 className="flex h-12 flex-1 touch-manipulation items-center justify-center gap-2 rounded-xl bg-white text-[15px] font-semibold text-black transition-transform duration-150 active:scale-95"
               >
-                <PauseIcon /> Pause
+                <PauseIcon /> {t.pause}
               </button>
             ) : (
               <button
@@ -172,7 +170,7 @@ export default function RestTimer({
                 onClick={start}
                 className="flex h-12 flex-1 touch-manipulation items-center justify-center gap-2 rounded-xl bg-white text-[15px] font-semibold text-black transition-transform duration-150 active:scale-95"
               >
-                <PlayIcon /> Start
+                <PlayIcon /> {t.start}
               </button>
             )}
             <button
@@ -180,7 +178,7 @@ export default function RestTimer({
               onClick={onStop}
               className="flex h-12 flex-1 touch-manipulation items-center justify-center gap-2 rounded-xl border border-gray2 bg-black text-[15px] font-semibold text-white transition-transform duration-150 active:scale-95 active:bg-white/10"
             >
-              <StopIcon /> Stop
+              <StopIcon /> {t.stop}
             </button>
           </div>
         </div>

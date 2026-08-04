@@ -14,7 +14,7 @@
 
 // Bump this version string whenever you ship changes — the old cache is
 // deleted on activate, so you never get stuck on a stale copy.
-const CACHE = "workout-cache-v2";
+const CACHE = "workout-cache-v3";
 const APP_SHELL = ["/", "/workout", "/manifest.json"];
 
 self.addEventListener("install", (event) => {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { LangProvider } from "@/components/LangProvider";
 
 export const metadata: Metadata = {
   title: "My Workout",
@@ -37,7 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-black text-white antialiased">
-        {children}
+        <LangProvider>{children}</LangProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

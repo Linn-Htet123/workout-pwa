@@ -15,10 +15,26 @@ body {
 }
 
 body {
+  /* Myanmar fonts sit AFTER the Latin ones: Burmese characters fall through
+     to them automatically (iOS: Myanmar Sangam MN, Android: Noto Sans
+     Myanmar, Windows: Myanmar Text). No web font download needed — the PWA
+     stays fully offline-capable. */
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro", "SF Pro Text",
-    "Helvetica Neue", Helvetica, Arial, sans-serif;
+    "Helvetica Neue", Helvetica, Arial, "Myanmar Sangam MN",
+    "Noto Sans Myanmar", "Myanmar Text", Padauk, sans-serif;
   /* Stop the whole page from bouncing/rubber-banding on iOS. */
   overscroll-behavior-y: none;
+}
+
+/* Burmese script stacks marks above and below the line — give it more air.
+   These rules win over Tailwind's leading-* utilities by specificity. */
+html[lang="my"] body {
+  line-height: 1.7;
+}
+html[lang="my"] h1,
+html[lang="my"] h2,
+html[lang="my"] h3 {
+  line-height: 1.5;
 }
 
 /* Safe-area padding so nothing hides behind the notch or the home bar. */

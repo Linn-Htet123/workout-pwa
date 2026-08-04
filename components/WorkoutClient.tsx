@@ -3,15 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getDayWorkout, isRestDay } from "@/data/program";
+import { dayTitle } from "@/data/i18n";
 import { dateKey, weekdayMonFirst } from "@/lib/date";
 import {
-  getDayProgress,
-  setDayCompleted,
+  getSessionProgress,
+  setSessionCompleted,
   toggleSet as toggleSetStore,
   type DayProgress,
 } from "@/lib/storage";
 import ExerciseCard from "./ExerciseCard";
 import RestTimer from "./RestTimer";
+import { useLang } from "./LangProvider";
 import { unlockAudio, playAlarm } from "@/lib/sound";
 
 const DEFAULT_REST = 90;
@@ -23,7 +25,8 @@ function fmt(ms: number): string {
   return `${m}:${String(s % 60).padStart(2, "0")}`;
 }
 
-export default function WorkoutClient() {
+export default function WorkoutClient({ dayOverride }: { dayOverride?: number }) {
+  const { t, lang } = useLang();
   const [mounted, setMounted] = useState(false);
   const [today] = useState(() => new Date());
   const [progress, setProgress] = useState<DayProgress>({
@@ -49,9 +52,9 @@ export default function WorkoutClient() {
     if (!setTimer) return;
     setNowTick(Date.now());
     const id = setInterval(() => {
-      const t = Date.now();
-      setNowTick(t);
-      if (t >= setTimer.endAt) {
+      const t2 = Date.now();
+      setNowTick(t2);
+      if (t2 >= setTimer.endAt) {
         playAlarm("set");
         setSetTimer(null);
       }
@@ -60,14 +63,15 @@ export default function WorkoutClient() {
   }, [setTimer]);
 
   const todayKey = dateKey(today);
-  const weekday = weekdayMonFirst(today);
-  const workout = useMemo(() => getDayWorkout(weekday), [weekday]);
+  // The day being trained: the one the user picked, or today's scheduled one.
+  const day = dayOverride ?? weekdayMonFirst(today);
+  const workout = useMemo(() => getDayWorkout(day), [day]);
   const rest = isRestDay(workout);
 
   useEffect(() => {
-    setProgress(getDayProgress(todayKey));
+    setProgress(getSessionProgress(todayKey, day));
     setMounted(true);
-  }, [todayKey]);
+  }, [todayKey, day]);
 
   const totalSets = workout.exercises.reduce((sum, e) => sum + e.sets, 0);
   const doneCount = workout.exercises.reduce(
@@ -79,7 +83,7 @@ export default function WorkoutClient() {
   function handleToggle(exerciseIndex: number, setIndex: number) {
     unlockAudio(); // this tap lets iOS play sounds later
     const wasComplete = progress.completed;
-    const updated = toggleSetStore(todayKey, exerciseIndex, setIndex);
+    const updated = toggleSetStore(todayKey, day, exerciseIndex, setIndex);
     const nowChecked = updated.setsDone[exerciseIndex]?.includes(setIndex);
 
     // Recompute completion from the fresh data and persist it.
@@ -88,7 +92,7 @@ export default function WorkoutClient() {
       0
     );
     const complete = totalSets > 0 && nowDoneCount >= totalSets;
-    const finalProgress = setDayCompleted(todayKey, complete);
+    const finalProgress = setSessionCompleted(todayKey, day, complete);
     setProgress(finalProgress);
 
     // Play the celebration sound the moment the day becomes complete.
@@ -97,7 +101,7 @@ export default function WorkoutClient() {
     // Start a rest timer only when a set was just turned ON (not undone).
     if (nowChecked) {
       setRestActive(true);
-      setStartToken((t) => t + 1);
+      setStartToken((tok) => tok + 1);
     }
   }
 
@@ -106,7 +110,7 @@ export default function WorkoutClient() {
     unlockAudio();
     setRestDuration(seconds);
     setRestActive(true);
-    setStartToken((t) => t + 1);
+    setStartToken((tok) => tok + 1);
   }
 
   function startSetTimer(index: number) {
@@ -125,20 +129,18 @@ export default function WorkoutClient() {
     return <div className="min-h-screen bg-black" />;
   }
 
-  // Someone opened /workout on a rest day — send them somewhere calm.
+  // Someone opened a rest day — send them somewhere calm.
   if (rest) {
     return (
       <main className="min-h-screen bg-black text-white">
-        <div className="safe-top safe-x mx-auto flex min-h-screen max-w-md flex-col items-center justify-center text-center">
-          <h1 className="text-[28px] font-bold">Rest Day</h1>
-          <p className="mt-2 text-[15px] text-gray1">
-            Nothing to train today. Enjoy the rest.
-          </p>
+        <div className="safe-top safe-x mx-auto flex min-h-screen max-w-md flex-col items-center justify-center text-center md:max-w-3xl">
+          <h1 className="text-[28px] font-bold">{t.restDay}</h1>
+          <p className="mt-2 text-[15px] text-gray1">{t.nothingToday}</p>
           <Link
             href="/"
             className="mt-6 flex h-12 items-center justify-center rounded-full border border-gray2 px-6 text-[15px] font-semibold active:bg-white/10"
           >
-            Back home
+            {t.backHome}
           </Link>
         </div>
       </main>
@@ -151,7 +153,7 @@ export default function WorkoutClient() {
       {setTimer && (
         <div className="fixed inset-x-0 top-0 z-40">
           <div className="safe-top safe-x bg-black/80 backdrop-blur">
-            <div className="mx-auto flex max-w-md items-center gap-3 py-2">
+            <div className="mx-auto flex max-w-md items-center gap-3 py-2 md:max-w-3xl">
               <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="2" />
@@ -174,7 +176,7 @@ export default function WorkoutClient() {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <rect x="6" y="6" width="12" height="12" rx="1.5" />
                 </svg>
-                Stop
+                {t.stop}
               </button>
             </div>
           </div>
@@ -182,11 +184,11 @@ export default function WorkoutClient() {
       )}
 
       {/* Extra bottom padding leaves room for the floating rest timer. */}
-      <div className="safe-top safe-x mx-auto max-w-md pb-48">
+      <div className="safe-top safe-x mx-auto max-w-md pb-48 md:max-w-3xl">
         <header className="flex items-center justify-between pt-4">
           <Link
             href="/"
-            aria-label="Back home"
+            aria-label={t.backHome}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-gray2 active:bg-white/10"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -200,13 +202,13 @@ export default function WorkoutClient() {
             </svg>
           </Link>
           <span className="text-[13px] font-semibold uppercase tracking-wide text-gray1">
-            Day {workout.day}
+            {t.day} {workout.day}
           </span>
         </header>
 
         <div className="mt-3">
           <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-            {workout.title}
+            {dayTitle(workout.title, lang)}
           </h1>
           <div className="mt-3 flex items-center gap-3">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray2">
@@ -234,8 +236,8 @@ export default function WorkoutClient() {
               />
             </svg>
             <div>
-              <p className="text-[16px] font-semibold">Workout complete</p>
-              <p className="text-[13px] text-gray1">Nice work. See you next session.</p>
+              <p className="text-[16px] font-semibold">{t.workoutComplete}</p>
+              <p className="text-[13px] text-gray1">{t.niceWork}</p>
             </div>
           </div>
         )}
