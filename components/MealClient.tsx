@@ -25,7 +25,7 @@ interface MealResult {
   notes: string;
 }
 
-const MAX_PHOTOS = 4;
+const MAX_PHOTOS = 3;
 const MAX_EDGE = 1024; // downscale so uploads stay small and cheap
 
 // Read a camera/gallery File, shrink it, and return base64 JPEG + a preview.
@@ -71,7 +71,8 @@ export default function MealClient() {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [result, setResult] = useState<MealResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null); // opens the camera
+  const galleryRef = useRef<HTMLInputElement>(null); // picks from gallery/files
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -165,48 +166,73 @@ export default function MealClient() {
           <>
             <p className="mt-3 text-[15px] text-gray1">{t.mealSub}</p>
 
-            {/* Photo grid */}
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {photos.map((p) => (
-                <div key={p.id} className="relative aspect-square overflow-hidden rounded-2xl border border-gray2 bg-gray3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.previewUrl} alt="" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(p.id)}
-                    aria-label={t.remove}
-                    className="absolute right-1.5 top-1.5 flex h-7 w-7 touch-manipulation items-center justify-center rounded-full bg-black/70 text-white active:scale-90"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+            {/* Photo grid (thumbnails only) */}
+            {photos.length > 0 && (
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                {photos.map((p) => (
+                  <div key={p.id} className="relative aspect-square overflow-hidden rounded-2xl border border-gray2 bg-gray3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.previewUrl} alt="" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(p.id)}
+                      aria-label={t.remove}
+                      className="absolute right-1.5 top-1.5 flex h-7 w-7 touch-manipulation items-center justify-center rounded-full bg-black/70 text-white active:scale-90"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
-              {photos.length < MAX_PHOTOS && (
+            {/* Take a photo OR upload from gallery — up to 3 total, mix freely. */}
+            {photos.length < MAX_PHOTOS && (
+              <div className="mt-4 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => inputRef.current?.click()}
-                  className="flex aspect-square touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-gray2 text-gray1 active:bg-white/5"
+                  onClick={() => cameraRef.current?.click()}
+                  className="flex h-14 flex-1 touch-manipulation items-center justify-center gap-2 rounded-2xl border border-gray2 bg-gray3 text-[15px] font-semibold text-white active:scale-[0.98] active:bg-white/10"
                 >
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M4 8h3l1.5-2h7L17 8h3v11H4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
                     <circle cx="12" cy="13" r="3.2" stroke="currentColor" strokeWidth="1.8" />
                   </svg>
-                  <span className="text-[12px] font-medium">{t.addPhoto}</span>
+                  {t.takePhoto}
                 </button>
-              )}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => galleryRef.current?.click()}
+                  className="flex h-14 flex-1 touch-manipulation items-center justify-center gap-2 rounded-2xl border border-gray2 bg-gray3 text-[15px] font-semibold text-white active:scale-[0.98] active:bg-white/10"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 16l5-5 4 4 3-3 4 4M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <circle cx="9" cy="9" r="1.4" fill="currentColor" />
+                  </svg>
+                  {t.uploadPhoto}
+                </button>
+              </div>
+            )}
             <p className="mt-2 text-[12px] text-gray1">
-              {photos.length} {t.photosUnit} · {t.photosHint}
+              {photos.length}/{MAX_PHOTOS} {t.photosUnit} · {t.photosHint}
             </p>
 
+            {/* Camera capture (opens the camera on phones) */}
             <input
-              ref={inputRef}
+              ref={cameraRef}
               type="file"
               accept="image/*"
               capture="environment"
+              className="hidden"
+              onChange={onPick}
+            />
+            {/* Gallery / file upload (no capture = pick existing photos) */}
+            <input
+              ref={galleryRef}
+              type="file"
+              accept="image/*"
               multiple
               className="hidden"
               onChange={onPick}

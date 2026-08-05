@@ -65,6 +65,8 @@ export interface UIStrings {
   kcal: string;
   aiDisclaimer: string;
   remove: string;
+  takePhoto: string;
+  uploadPhoto: string;
 }
 
 export const UI: Record<Lang, UIStrings> = {
@@ -125,6 +127,8 @@ export const UI: Record<Lang, UIStrings> = {
     kcal: "kcal",
     aiDisclaimer: "AI guess — not exact. Use as a rough guide.",
     remove: "Remove",
+    takePhoto: "Take photo",
+    uploadPhoto: "Upload",
   },
   my: {
     appTitle: "ကျွန်တော့် လေ့ကျင့်ခန်း",
@@ -183,6 +187,8 @@ export const UI: Record<Lang, UIStrings> = {
     kcal: "kcal",
     aiDisclaimer: "AI ခန့်မှန်းချက် — တိကျမှုမဟုတ်ပါ။ အကြမ်းဖျင်းသာ။",
     remove: "ဖယ်ရှားရန်",
+    takePhoto: "ဓာတ်ပုံရိုက်ရန်",
+    uploadPhoto: "ပုံတင်ရန်",
   },
 };
 
