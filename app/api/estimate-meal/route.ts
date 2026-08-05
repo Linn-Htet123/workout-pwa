@@ -14,24 +14,30 @@ interface InImage {
 const MODEL = "claude-sonnet-5";
 
 const SYSTEM = `You are a careful nutrition estimator for a personal fitness app.
-The user sends 1–4 photos of ONE meal (often the same meal from different angles) and an optional note.
+The user sends 1–3 photos of ONE meal (often the same meal from different angles) and an optional note.
 Estimate the total calories of the whole meal shown.
 
-Rules:
+Identifying the food (important — get the names right):
+- Look carefully and name each item using the simple, common name people actually use (e.g. "mushrooms", "fried rice", "grilled chicken").
+- If you are not fully sure exactly what a dish is, DO NOT guess a specific named dish. Instead describe what you can clearly see, e.g. "stir-fried mushrooms with vegetables" — a plain description is better than a wrong specific name.
+- If the user's note names the food, trust the note for identification.
+- Never invent a fancy or specific dish name you are not confident about.
+
+Estimating calories:
 - Treat all photos as the SAME single meal, not separate meals. Use the extra angles only to judge portion size better.
 - Assume realistic restaurant/street-food portions (the user often eats out in Thailand).
 - Give a single best total, plus a low–high range that reflects your uncertainty.
 - Break the meal into the main items you can see, each with its own calorie estimate.
-- Be honest with the confidence level: "low" if the photos are unclear or portions are hard to judge.
+- Be honest with the confidence level: "low" if the photos are unclear or the food is hard to identify.
 
 Respond with ONLY a single minified JSON object, no markdown, no code fences, no extra text. Shape:
 {"dish":string,"totalCalories":integer,"lowRange":integer,"highRange":integer,"items":[{"name":string,"calories":integer}],"confidence":"low"|"medium"|"high","notes":string}
-- "dish" is a short name for the meal.
+- "dish" is a short, plain name (or description) for the whole meal.
 - "notes" is one short sentence (max ~20 words) of helpful context or a caveat.`;
 
 function langLine(lang: string): string {
   if (lang === "my") {
-    return 'Write "dish", every item "name", and "notes" in Burmese (Myanmar) language. Keep all numbers as digits.';
+    return 'Write "dish", every item "name", and "notes" in everyday Burmese (Myanmar). Use the common Burmese word people actually use for each food. If there is no natural common Burmese word for an item, keep that item\'s name in English rather than inventing an awkward literal translation. Keep all numbers as digits.';
   }
   return 'Write "dish", item names, and "notes" in clear, simple English.';
 }
@@ -90,8 +96,9 @@ export async function POST(req: Request) {
       max_tokens: 1024,
       system: SYSTEM,
       messages: [{ role: "user", content }],
-      // A calorie guess doesn't need deep reasoning — keep it fast and cheap.
-      output_config: { effort: "low" },
+      // Medium effort: the model looks more carefully so it names the food
+      // right, while staying reasonably fast and cheap.
+      output_config: { effort: "medium" },
     } as Anthropic.MessageCreateParamsNonStreaming);
 
     const textBlock = response.content.find((b) => b.type === "text");
