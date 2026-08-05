@@ -69,6 +69,24 @@ export default function HomeClient() {
           </div>
         </header>
 
+        {/* AI calorie estimator */}
+        <Link
+          href="/meal"
+          className="mt-5 flex items-center gap-4 rounded-card border border-gray2 bg-gray3 p-5 transition-transform duration-150 active:scale-[0.99] active:bg-white/5"
+        >
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-gray2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 8h3l1.5-2h7L17 8h3v11H4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              <circle cx="12" cy="13" r="3.2" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[17px] font-semibold leading-snug">{t.mealTitle}</h2>
+            <p className="mt-0.5 text-[13px] text-gray1">{t.mealTagline}</p>
+          </div>
+          <Chevron />
+        </Link>
+
         {/* Day list — tap ANY day and just do it. Nothing is locked. */}
         <section className="mt-5 space-y-3">
           {weeklySchedule.map((w) => {
